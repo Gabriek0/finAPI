@@ -2,5 +2,10 @@ export interface Account {
   id: string;
   name: string;
   cpf: string;
-  statement: [];
+  statement?: {
+    description: string;
+    created_at: Date;
+    amount: number;
+    type: string;
+  }[];
 }

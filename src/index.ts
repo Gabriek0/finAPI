@@ -11,7 +11,12 @@ declare module "express-serve-static-core" {
       id: string;
       name: string;
       cpf: string;
-      statement: [];
+      statement?: {
+        description: string;
+        created_at: Date;
+        amount: number;
+        type: string;
+      }[];
     };
   }
 }
@@ -57,8 +62,6 @@ app.post("/account", (req: Request, res: Response) => {
       statement: [],
     });
 
-    console.log(customers);
-
     return res.status(201).send("Registered account!");
   }
 
@@ -72,6 +75,27 @@ app.get(
     const { customer } = req;
 
     return res.json(customer?.statement);
+  }
+);
+
+app.post(
+  "/deposit",
+  verifyIfCpfAlreadyExists,
+  (req: Request, res: Response) => {
+    const { description, amount } = req.body;
+
+    const { customer } = req;
+
+    const statementOperation = {
+      description,
+      amount,
+      created_at: new Date(),
+      type: "credit",
+    };
+
+    customer.statement && customer.statement.push(statementOperation);
+
+    return res.status(201).send();
   }
 );
 

@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 
 import { v4 as uuid } from "uuid";
 
-import { Account } from "./models/Accounts";
+import { Account, Statement } from "./models/Accounts";
 
 declare module "express-serve-static-core" {
   interface Request {
@@ -11,12 +11,7 @@ declare module "express-serve-static-core" {
       id: string;
       name: string;
       cpf: string;
-      statement?: {
-        description: string;
-        created_at: Date;
-        amount: number;
-        type: string;
-      }[];
+      statement: Statement[];
     };
   }
 }
@@ -47,6 +42,18 @@ function verifyIfCpfAlreadyExists(
   req.customer = customer;
 
   return next();
+}
+
+function getBalance(statement: Statement[]) {
+  const balance = statement.reduce((acc, operation) => {
+    if (operation.type === "credit") {
+      return (acc += operation.amount);
+    } else {
+      return (acc -= operation.amount);
+    }
+  }, 0);
+
+  return balance;
 }
 
 app.post("/account", (req: Request, res: Response) => {
@@ -86,7 +93,7 @@ app.post(
 
     const { customer } = req;
 
-    const statementOperation = {
+    const statementOperation: Statement = {
       description,
       amount,
       created_at: new Date(),
@@ -96,6 +103,32 @@ app.post(
     customer.statement && customer.statement.push(statementOperation);
 
     return res.status(201).send();
+  }
+);
+
+app.post(
+  "/withdraw",
+  verifyIfCpfAlreadyExists,
+  (req: Request, res: Response) => {
+    const { amount } = req.body;
+
+    const { customer } = req;
+
+    const balance = getBalance(customer.statement);
+
+    if (balance < amount) {
+      return res.status(400).json({ error: "Insufficient funds!" });
+    }
+
+    const statementOperation: Statement = {
+      amount,
+      created_at: new Date(),
+      type: "debit",
+    };
+
+    customer.statement.push(statementOperation);
+
+    return res.status(200).send();
   }
 );
 

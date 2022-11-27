@@ -1,4 +1,10 @@
-import express, { Request, Response, Express, NextFunction } from "express";
+import express, {
+  Request,
+  Response,
+  Express,
+  NextFunction,
+  response,
+} from "express";
 import dotenv from "dotenv";
 
 import { v4 as uuid } from "uuid";
@@ -131,5 +137,60 @@ app.post(
     return res.status(200).send();
   }
 );
+
+app.get(
+  "/statement/date",
+  verifyIfCpfAlreadyExists,
+  (req: Request, res: Response) => {
+    const { customer } = req;
+
+    const { date } = req.query;
+
+    const dateFormat = new Date(date + " 00:00"); // Example 2022-11-26
+
+    const statement = customer.statement.filter(
+      (stat) =>
+        stat.created_at.toDateString() === new Date(dateFormat).toDateString()
+    );
+
+    return res.json(statement);
+  }
+);
+
+app.put("/account", verifyIfCpfAlreadyExists, (req: Request, res: Response) => {
+  const { customer } = req;
+
+  const { name } = req.body;
+
+  customer.name = name;
+
+  return res.status(201).send();
+});
+
+app.get("/account", verifyIfCpfAlreadyExists, (req: Request, res: Response) => {
+  const { customer } = req;
+
+  return res.json({ customer });
+});
+
+app.delete(
+  "/account",
+  verifyIfCpfAlreadyExists,
+  (req: Request, res: Response) => {
+    const { customer } = req;
+
+    customers.splice(customers.indexOf(customer), 1);
+
+    return res.status(200).json(customers);
+  }
+);
+
+app.get("/balance", verifyIfCpfAlreadyExists, (req: Request, res: Response) => {
+  const { customer } = req;
+
+  const balance = getBalance(customer.statement);
+
+  return res.status(200).json({ balance });
+});
 
 app.listen(port);
